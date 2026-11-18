@@ -1714,13 +1714,15 @@ class DocketBaseDocument(DSLDocument):
     )
 
 
+
 class _DocketDocumentPartyDict(TypedDict):
-    party_id: set
-    party: set[str] | list[str]
-    attorney_id: set
-    attorney: set[str]
-    firm_id: set
-    firm: set
+    party_id: list[int]
+    party: list[str]
+    attorney_id: list[int]
+    attorney: list[str]
+    firm_id: list[int]
+    firm: list[str]
+
 
 
 @recap_index.document
@@ -1840,21 +1842,22 @@ class DocketDocument(
         If the docket has no parties, party names are parsed from its case name
         instead.
         """
-        parties = set()
-        out: _DocketDocumentPartyDict = {
-            "party_id": set(),
-            "party": parties,
-            "attorney_id": set(),
-            "attorney": set(),
-            "firm_id": set(),
-            "firm": set(),
-        }
+parties = []
+out: _DocketDocumentPartyDict = {
+    "party_id": [],
+    "party": parties,
+    "attorney_id": [],
+    "attorney": [],
+    "firm_id": [],
+    "firm": [],
+}
 
         # Extract only required parties values.
         party_values = instance.parties.values_list("pk", "name")
         for pk, name in party_values.iterator():
-            out["party_id"].add(pk)
-            parties.add(name)
+    if pk not in out["party_id"]:
+        out["party_id"].append(pk)
+        parties.append(name)
 
         if not out["party"]:
             # Get party from docket case_name if no normalized parties are
@@ -1873,10 +1876,10 @@ class DocketDocument(
             Attorney.objects.filter(roles__docket=instance)
             .distinct()
             .values_list("pk", "name")
-        )
         for pk, name in atty_values.iterator():
-            out["attorney_id"].add(pk)
-            out["attorney"].add(name)
+    if pk not in out["attorney_id"]:
+        out["attorney_id"].append(pk)
+        out["attorney"].append(name)
 
         # Extract only required firm values.
         firms_values = (
@@ -1886,9 +1889,10 @@ class DocketDocument(
             .distinct()
             .values_list("pk", "name")
         )
-        for pk, name in firms_values.iterator():
-            out["firm_id"].add(pk)
-            out["firm"].add(name)
+    for pk, name in firms_values.iterator():
+    if pk not in out["firm_id"]:
+        out["firm_id"].append(pk)
+        out["firm"].append(name)
 
         return out
 
@@ -1918,14 +1922,16 @@ class DocketDocumentPlain(DocketDocument):
         Returns empty collections if the docket has more distinct roles than
         ``MAX_ATTORNEYS_TO_PERCOLATE``.
         """
-        out = {
-            "party_id": set(),
-            "party": set(),
-            "attorney_id": set(),
-            "attorney": set(),
-            "firm_id": set(),
-            "firm": set(),
-        }
+       
+out: _DocketDocumentPartyDict = {
+    "party_id": [],
+    "party": [],
+    "attorney_id": [],
+    "attorney": [],
+    "firm_id": [],
+    "firm": [],
+}
+
         atty_count = Role.objects.filter(docket=instance).distinct().count()
         if atty_count > settings.MAX_ATTORNEYS_TO_PERCOLATE:
             return out
@@ -2771,14 +2777,16 @@ class ESRECAPDocumentPlain(ESRECAPDocument):
         Returns empty collections if the docket has more roles than
         ``MAX_ATTORNEYS_TO_PERCOLATE``.
         """
-        out = {
-            "party_id": set(),
-            "party": set(),
-            "attorney_id": set(),
-            "attorney": set(),
-            "firm_id": set(),
-            "firm": set(),
-        }
+       
+out = {
+    "party_id": [],
+    "party": [],
+    "attorney_id": [],
+    "attorney": [],
+    "firm_id": [],
+    "firm": [],
+}
+
 
         docket = instance.docket_entry.docket
         atty_count = Role.objects.filter(docket=docket).count()
@@ -2787,9 +2795,12 @@ class ESRECAPDocumentPlain(ESRECAPDocument):
 
         # Extract only required parties values.
         party_values = docket.parties.values_list("pk", "name")
-        for pk, name in party_values.iterator():
-            out["party_id"].add(pk)
-            out["party"].add(name)
+       
+for pk, name in party_values.iterator():
+    if pk not in out["party_id"]:
+        out["party_id"].append(pk)
+        out["party"].append(name)
+
 
         # Extract only required attorney values.
         atty_values = (
@@ -2797,9 +2808,12 @@ class ESRECAPDocumentPlain(ESRECAPDocument):
             .distinct()
             .values_list("pk", "name")
         )
-        for pk, name in atty_values.iterator():
-            out["attorney_id"].add(pk)
-            out["attorney"].add(name)
+       
+for pk, name in atty_values.iterator():
+    if pk not in out["attorney_id"]:
+        out["attorney_id"].append(pk)
+        out["attorney"].append(name)
+
 
         # Extract only required firm values.
         firms_values = (
@@ -2809,9 +2823,12 @@ class ESRECAPDocumentPlain(ESRECAPDocument):
             .distinct()
             .values_list("pk", "name")
         )
-        for pk, name in firms_values.iterator():
-            out["firm_id"].add(pk)
-            out["firm"].add(name)
+        
+for pk, name in firms_values.iterator():
+    if pk not in out["firm_id"]:
+        out["firm_id"].append(pk)
+        out["firm"].append(name)
+
         return out
 
     def prepare_docket_absolute_url(self, instance):
